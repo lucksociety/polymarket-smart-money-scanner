@@ -311,7 +311,7 @@ footer a{color:var(--gold)}
   </section>
 
   <section id="consSec" class="hidden">
-    <div class="sec-h"><h2>Sharp Consensus</h2><p>Same side, 2+ tracked traders</p></div>
+    <div class="sec-h"><h2>Smart Consensus</h2><p>Same side, 2+ tracked traders</p></div>
     <div class="consensus" id="consensus"></div>
   </section>
 
@@ -606,7 +606,7 @@ function renderConsensus(rows){
   $("#consensus").innerHTML = cons.map(x => `
     <a class="cons" href="https://polymarket.com/event/${esc(x.p.eventSlug)}" target="_blank" rel="noopener">
       <div class="t">${esc(x.p.title)}</div>
-      <div class="side"><span class="pill">${esc(x.p.outcome)} @ ${cents(x.p.curPrice)}</span><span class="pill gold">${x.traders.length} sharps</span><span class="pill dim">${esc(x.p.sport)}</span></div>
+      <div class="side"><span class="pill">${esc(x.p.outcome)} @ ${cents(x.p.curPrice)}</span><span class="pill gold">${x.traders.length} smart wallets</span><span class="pill dim">${esc(x.p.sport)}</span></div>
       <div class="who">${x.list.sort((a,b)=>b.conv-a.conv).map(p=>`<b>${esc(p.trader)}</b> ${pct(p.conv)}`).join(" · ")}</div>
       <div class="m"><span>${money(x.value)} on it</span><span>${x.p.isGame ? "Ends "+endTxt(x.p.game) : "Open-ended"}</span></div>
     </a>`).join("");
@@ -663,12 +663,12 @@ function renderByDay(rows){
   $("#listSub").textContent = `${list.length} sections · ${rows.length} positions`;
   return list.map((b,i) => {
     const games = sortGames(groupGames(b.rows));
-    const isOpen = OPEN["d:"+b.key] ?? (b.key.startsWith("10") || b.key.startsWith("11") || b.key.startsWith("12"));
+    const isOpen = OPEN["d:"+b.key] ?? (b.key.startsWith("10") || b.key.startsWith("11"));
     const val = b.rows.reduce((a,p)=>a+p.currentValue,0);
     const maxN = b.rows.filter(p=>p.tier==="max").length;
     return `<details class="day ${b.live?"live":""}" data-day="${esc(b.key)}" ${isOpen?"open":""}>
       <summary>${b.live?'<span class="live-dot"></span>':""}<span class="lbl">${esc(b.label)}</span><span class="dt">${esc(b.sub)}</span>
-        <span class="sum"><span><b>${games.length}</b> markets</span><span><b>${money(val)}</b></span>${maxN?`<span class="tier max">🔥 ${maxN}</span>`:""}<span class="chev">▶</span></span></summary>
+        <span class="sum"><span><b>${games.length}</b> market${games.length===1?"":"s"}</span><span><b>${money(val)}</b></span>${maxN?`<span class="tier max">🔥 ${maxN}</span>`:""}<span class="chev">▶</span></span></summary>
       <div class="day-body">${isOpen ? games.slice(0,150).map(gameCard).join("") : ""}</div>
     </details>`;
   }).join("");
