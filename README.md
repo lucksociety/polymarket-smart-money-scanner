@@ -25,9 +25,9 @@ Edit the `CORE` list near the top of the `<script>` in `index.html` to change it
 ```
 
 ## Data sources
-- Positions: `data-api.polymarket.com/positions`
-- Open book value: `data-api.polymarket.com/value`
-- Leaderboards: `data-api.polymarket.com/v1/leaderboard`
+- Positions: `data-api.polymarket.com/v2/positions`
+- Open book value: `data-api.polymarket.com/v2/value`
+- Leaderboards: `data-api.polymarket.com/v2/leaderboard`
 - Categories: `gamma-api.polymarket.com/events` tags
 
 Not betting advice. Big P&L can come from market-making, insider-ish edges or a single lucky hit — do your own homework.

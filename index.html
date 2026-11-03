@@ -365,7 +365,7 @@ const CORE = [
 ];
 
 let TRADERS = [...CORE];
-const DATA = "https://data-api.polymarket.com";
+const DATA = "https://data-api.polymarket.com/v2";
 const GAMMA = "https://gamma-api.polymarket.com";
 const SPORTS = ["Elections","Politics","Geopolitics","Economy","Finance","Crypto","Tech","Culture","Weather","Mentions","Other","Sports"];
 const EXCLUDED = "Sports";
@@ -420,18 +420,28 @@ let UI = { sport:"All", view:"day", sort:"start", minConv:0.01, min:1000, hideHe
 const OPEN = {};   // remembers which day sections / game cards are expanded
 
 /* ============ scan ============ */
+// Polymarket Data API v2 (v1 was retired Nov 2026). Rows are mapped back to the field names the rest of the page uses.
+function fromV2(r){
+  return { conditionId:r.condition_id, asset:r.token_id, outcome:r.outcome, outcomeIndex:r.outcome_index,
+    title:r.title, slug:r.slug, icon:r.icon, eventSlug:r.event_slug, endDate:r.end_date,
+    size:r.current_size, avgPrice:r.avg_price, curPrice:r.current_price, currentValue:r.current_value,
+    initialValue:r.entry_cost_usdc, cashPnl:r.unrealized_pnl, realizedPnl:r.realized_pnl,
+    redeemable:!!r.redeemable, status:r.status };
+}
 async function fetchPositions(t){
-  const all = [];
-  for(let off=0; off<5000; off+=500){
-    const page = await getJSON(`${DATA}/positions?user=${t.wallet}&sizeThreshold=1&limit=500&offset=${off}&sortBy=CURRENT&sortDirection=DESC`);
-    if(!Array.isArray(page) || !page.length) break;
-    all.push(...page);
-    if(page.length < 500) break;
+  const all = []; let cursor = null;
+  for(let page=0; page<5; page++){
+    const url = `${DATA}/positions?user=${t.wallet}&status=OPEN&sort_by=CURRENT_VALUE&sort_direction=DESC&limit=1000` + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : "");
+    const res = await getJSON(url);
+    const rows = res?.data || [];
+    all.push(...rows.map(fromV2));
+    cursor = res?.pagination?.next_cursor;
+    if(!cursor || !rows.length) break;
   }
   return all;
 }
 async function fetchBook(t, positions){
-  try{ const v = await getJSON(`${DATA}/value?user=${t.wallet}`); const n = +(v?.[0]?.value); if(n>0) return n; }catch(e){}
+  try{ const v = await getJSON(`${DATA}/value?user=${t.wallet}`); const n = +(v?.data?.value); if(n>0) return n; }catch(e){}
   return positions.reduce((a,p)=>a+(p.currentValue||0),0);
 }
 async function fetchEvents(slugs){
@@ -460,9 +470,9 @@ async function scan(){
     const known = new Set(CORE.map(t=>t.wallet.toLowerCase()));
     for(const [cat,n,label] of [["POLITICS",10,"Hot · Politics"],["CRYPTO",6,"Hot · Crypto"],["ECONOMICS",5,"Hot · Economy"],["FINANCE",5,"Hot · Finance"],["TECH",3,"Hot · Tech"],["CULTURE",3,"Hot · Culture"],["WEATHER",3,"Hot · Weather"],["MENTIONS",3,"Hot · Mentions"]]){
       try{
-        const lb = await getJSON(`${DATA}/v1/leaderboard?category=${cat}&timePeriod=MONTH&orderBy=PNL&limit=${n}`);
-        for(const [i,x] of lb.entries()){ const w=(x.proxyWallet||"").toLowerCase(); if(!w||known.has(w)) continue; known.add(w);
-          TRADERS.push({ name:shortName(x.userName) || (w.slice(0,6)+"…"+w.slice(-4)), wallet:w, spec:`${label} #${x.rank||i+1} · ${signed(+x.pnl||0)}/mo`, hot:true }); }
+        const lb = (await getJSON(`${DATA}/leaderboard?category=${cat}&time_period=month&sort_by=PNL&limit=${n}`))?.data || [];
+        for(const [i,x] of lb.entries()){ const w=(x.user_id||"").toLowerCase(); if(!w||known.has(w)) continue; known.add(w);
+          TRADERS.push({ name:shortName(x.user_name) || (w.slice(0,6)+"…"+w.slice(-4)), wallet:w, spec:`${label} #${x.rank||i+1} · ${signed(+x.pnl||0)}/mo`, hot:true }); }
       }catch(e){}
     }
   }
